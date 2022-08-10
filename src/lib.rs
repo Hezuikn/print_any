@@ -21,7 +21,7 @@ pub fn print_any_nw<T>(any: T) {
     print!("{f}");
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[allow(non_camel_case_types)]
 enum not_the_actual_type {}
 impl std::fmt::Display for not_the_actual_type {
