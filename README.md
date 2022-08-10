@@ -21,7 +21,7 @@ fn main() {
 
 <pre>
 $dbg: [
-    'h',
+    <a href="https://twitter.com/hezuikn">'h',
     't',
     't',
     'p',
@@ -47,7 +47,7 @@ $dbg: [
     'u',
     'i',
     'k',
-    'n',
+    'n',</a>
 ]
 your waifu loves you
 &mut sekai
