@@ -1,0 +1,8 @@
+[package]
+name = "print_any"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+single_borrow = { git = "https://github.com/Hezuikn/single_borrow" }
+specialize = { git = "https://github.com/arcnmx/specialize-rs" }
