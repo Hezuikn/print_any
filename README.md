@@ -19,7 +19,7 @@ fn main() {
 }
 ```
 
-```text
+<pre>
 $dbg: [
     'h',
     't',
@@ -57,11 +57,11 @@ noone!
 sum: entirely optional text uwu
 ok: i wish you eternal happiness
 err: fuck you cupcake is best girl
-err: https://www.youtube.com/watch?v=-ZI_PkdxMmE
+err: <a>https://www.youtube.com/watch?v=-ZI_PkdxMmE</a>
 dbg: [
-    "https://www.youtube.com/watch?v=0_ftyQCj3Mw",
+    "<a>https://www.youtube.com/watch?v=0_ftyQCj3Mw</a>",
     "present text",
 ]
 /empty/
 src/main.rs:17:5 "print_any::main::Marriage" /type/"print_any::main::Marriage"
-```
+</pre>
