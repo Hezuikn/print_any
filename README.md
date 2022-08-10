@@ -57,9 +57,9 @@ noone!
 sum: entirely optional text uwu
 ok: i wish you eternal happiness
 err: fuck you cupcake is best girl
-err: <a>https://www.youtube.com/watch?v=-ZI_PkdxMmE</a>
+err: <a href="https://www.youtube.com/watch?v=-ZI_PkdxMmE">https://www.youtube.com/watch?v=-ZI_PkdxMmE</a>
 dbg: [
-    "<a>https://www.youtube.com/watch?v=0_ftyQCj3Mw</a>",
+    "<a href="https://www.youtube.com/watch?v=0_ftyQCj3Mw">https://www.youtube.com/watch?v=0_ftyQCj3Mw</a>",
     "present text",
 ]
 /empty/
