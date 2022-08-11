@@ -1,5 +1,5 @@
 #![allow(incomplete_features)]
-#![feature(specialization)]
+#![feature(specialization, box_syntax)]
 
 use std::any::type_name;
 
@@ -21,7 +21,7 @@ pub fn print_any_nw<T>(any: T) {
     print!("{f}");
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(non_camel_case_types)]
 enum not_the_actual_type {}
 impl std::fmt::Display for not_the_actual_type {
@@ -36,12 +36,11 @@ impl Iterator for not_the_actual_type {
     }
 }
 
-fn impl_print_any<T>(mut t: T) -> Result<String, ()> {
-    let b = t.single_borrow();
-
+fn impl_print_any<T>(t: T) -> Result<String, ()> {
     //display
     use specialize::constrain;
-    if let Some(x) = constrain!(ref [b: std::fmt::Display] = not_the_actual_type) {
+    #[allow(unused_braces)]
+    if let Some(x) = constrain!(ref [{&t}: std::fmt::Display] = not_the_actual_type) {
         let x = format!("{x}");
         if x.is_empty() {
             return Ok(format!("/empty/"));
@@ -51,52 +50,110 @@ fn impl_print_any<T>(mut t: T) -> Result<String, ()> {
     }
 
     //option / result
-    {
-        trait MaybeOption<'a> {
-            type Inner;
-            fn maybe_option(self) -> Option<&'a Option<Self::Inner>>;
+    trait MaybeOwnedOption {
+        type Inner;
+        fn maybe_owned_option(self) -> Result<Option<Self::Inner>, Box<Self>>;
+    }
+    impl<T> MaybeOwnedOption for T {
+        default type Inner = not_the_actual_type;
+        default fn maybe_owned_option(self) -> Result<Option<Self::Inner>, Box<Self>> {
+            Err(box self)
         }
-        impl<'a, T> MaybeOption<'a> for T {
-            default type Inner = not_the_actual_type;
-            default fn maybe_option(self) -> Option<&'a Option<Self::Inner>> {
-                None
-            }
+    }
+    impl<Inner> MaybeOwnedOption for Option<Inner> {
+        type Inner = Inner;
+        fn maybe_owned_option(self) -> Result<Option<Self::Inner>, Box<Self>> {
+            Ok(self)
         }
-        impl<'a, T> MaybeOption<'a> for &'a Option<T> {
-            type Inner = T;
-            fn maybe_option(self) -> Option<&'a Option<Self::Inner>> {
-                Some(self)
-            }
+    }
+
+    trait MaybeBorrowedOption {
+        type Inner;
+        fn maybe_borrowed_option(&self) -> Option<&Option<Self::Inner>>;
+    }
+    impl<T> MaybeBorrowedOption for T {
+        default type Inner = not_the_actual_type;
+        default fn maybe_borrowed_option(&self) -> Option<&Option<Self::Inner>> {
+            None
         }
-        if let Some(x) = b.maybe_option() {
+    }
+    impl<Inner> MaybeBorrowedOption for Option<Inner> {
+        type Inner = Inner;
+        fn maybe_borrowed_option(&self) -> Option<&Option<Self::Inner>> {
+            Some(self)
+        }
+    }
+
+    let t = match t.maybe_owned_option() {
+        Ok(x) => {
             return Ok(match x {
-                None => format!("noone!"),
                 Some(x) => {
                     format!("sum: {}", impl_print_any(x)?)
                 }
+                None => {
+                    format!("noone!")
+                }
             });
         }
-        //
-        trait MaybeResult<'a> {
-            type Ok;
-            type Err;
-            fn maybe_result(self) -> Option<&'a Result<Self::Ok, Self::Err>>;
-        }
-        impl<'a, T> MaybeResult<'a> for T {
-            default type Ok = not_the_actual_type;
-            default type Err = not_the_actual_type;
-            default fn maybe_result(self) -> Option<&'a Result<Self::Ok, Self::Err>> {
-                None
+        Err(bx) => match (*bx).single_borrow().maybe_borrowed_option() {
+            Some(x) => {
+                return Ok(match x {
+                    Some(x) => {
+                        format!("sum: {}", impl_print_any(x)?)
+                    }
+                    None => {
+                        format!("noone!")
+                    }
+                });
             }
+            None => *bx,
+        },
+    };
+
+    //
+
+    trait MaybeOwnedResult {
+        type O;
+        type E;
+        fn maybe_owned_result(self) -> Result<Result<Self::O, Self::E>, Box<Self>>;
+    }
+    impl<T> MaybeOwnedResult for T {
+        default type O = not_the_actual_type;
+        default type E = not_the_actual_type;
+        default fn maybe_owned_result(self) -> Result<Result<Self::O, Self::E>, Box<Self>> {
+            Err(box self)
         }
-        impl<'a, O, E> MaybeResult<'a> for &'a Result<O, E> {
-            type Ok = O;
-            type Err = E;
-            fn maybe_result(self) -> Option<&'a Result<O, E>> {
-                Some(self)
-            }
+    }
+    impl<O, E> MaybeOwnedResult for Result<O, E> {
+        type O = O;
+        type E = E;
+        fn maybe_owned_result(self) -> Result<Result<Self::O, Self::E>, Box<Self>> {
+            Ok(self)
         }
-        if let Some(x) = b.maybe_result() {
+    }
+
+    trait MaybeBorrowedResult {
+        type O;
+        type E;
+        fn maybe_borrowed_result(&self) -> Option<&Result<Self::O, Self::E>>;
+    }
+    impl<T> MaybeBorrowedResult for T {
+        default type O = not_the_actual_type;
+        default type E = not_the_actual_type;
+        default fn maybe_borrowed_result(&self) -> Option<&Result<Self::O, Self::E>> {
+            None
+        }
+    }
+    impl<O, E> MaybeBorrowedResult for Result<O, E> {
+        type O = O;
+        type E = E;
+        fn maybe_borrowed_result(&self) -> Option<&Result<Self::O, Self::E>> {
+            Some(self)
+        }
+    }
+
+    let mut t = match t.maybe_owned_result() {
+        Ok(x) => {
             return Ok(match x {
                 Ok(x) => {
                     format!("ok: {}", impl_print_any(x)?)
@@ -106,18 +163,38 @@ fn impl_print_any<T>(mut t: T) -> Result<String, ()> {
                 }
             });
         }
-    }
+        Err(bx) => match (*bx).single_borrow().maybe_borrowed_result() {
+            Some(x) => {
+                return Ok(match x {
+                    Ok(x) => {
+                        format!("ok: {}", impl_print_any(x)?)
+                    }
+                    Err(x) => {
+                        format!("err: {}", impl_print_any(x)?)
+                    }
+                });
+            }
+            None => *bx,
+        },
+    };
 
     //iter
-    let m = &mut t;
-    if let Some(x) = constrain!(ref mut [m: Iterator] = not_the_actual_type) {
-        return Ok(format!("${}", impl_print_any(Vec::<_>::from_iter(x))?))
+    #[allow(unused_braces)]
+    if let Some(x) = constrain!(ref mut [{&mut t}: Iterator] = not_the_actual_type) {
+        return Ok(format!("${}", impl_print_any(Vec::<_>::from_iter(x))?));
     }
 
-    let b = t.single_borrow();
+    #[allow(unused_braces)]
+    if let Some(x) = constrain!(ref [{t.single_borrow()}: Iterator + Clone] = not_the_actual_type) {
+        return Ok(format!(
+            "${}",
+            impl_print_any(Vec::<_>::from_iter(x.clone()))?
+        ));
+    }
 
     //debug
-    if let Some(x) = constrain!(ref [b: std::fmt::Debug] = not_the_actual_type) {
+    #[allow(unused_braces)]
+    if let Some(x) = constrain!(ref [{&t}: std::fmt::Debug] = not_the_actual_type) {
         return Ok(format!("dbg: {x:#?}"));
     }
 
